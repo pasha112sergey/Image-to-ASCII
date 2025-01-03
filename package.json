@@ -1,0 +1,22 @@
+{
+  "name": "imgtoascii",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "@u4/opencv4nodejs": "^7.1.2",
+    "express": "^4.19.2",
+    "fs": "^0.0.1-security",
+    "image-js": "^0.35.6",
+    "image-to-ascii": "^3.0.13",
+    "inquirer": "^10.1.8",
+    "node-fetch": "^3.3.2",
+    "sharp": "^0.33.4"
+  }
+}
