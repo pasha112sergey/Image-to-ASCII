@@ -4,101 +4,112 @@ import sharp from "sharp";
 import fetch from "node-fetch";
 import path from "path";
 const ascii = " .:-=+*#%@";
-// const ascii =  `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@`
+
+// Main file for the logic of the Image to ASCII Conversion
 
 
-
+// This interprets the image from teh link
 async function downloadImage(filePath) {
-  // Await an image download from the link
+  // Await an image from the given link
+
   const img = await fetch(filePath);
   // Throw error if failed to fetch an image
+
   if (!img.ok) {
     throw new Error(`Failed to fetch image: ${img.statusText}`);
   }
-  // Convert to Buffer
-  const buffer = await img.arrayBuffer();
+  // Convert to Buffer for later usage
 
-  // Debugging image processing
-  sharp(buffer)
-  .modulate({ // Increase saturation and contrast
-    saturation: 10,
-    contrast : 10
-  })
-  .greyscale()
-  .linear(3.3, -20.) // Increase saturation and contrast
-  // .negate() // Negate the image
-  // .normalize({
-  //   lower : 1,
-  //   upper: 50
-  // })
-  .resize(500) // Resize to be smaller
-  // Open the edited image with the default image viewer
-  .toFile('test.png');
+  const buffer = await img.arrayBuffer();
   return Buffer.from(buffer);
 }
 
 // Converts the image to ASCII by scanning pixels, getting the brightness value and mapping it onto the ASCII Brightness array.
+// Filename is the URL to an image and the dimensions are specified to nicely fit into a HTML
 async function convertImageToAscii(fileName, dimensions) {
   try {
-    // 
     fileName = await downloadImage(fileName);
     let image = sharp(fileName)
-    .modulate({ // Increase saturation and contrast
+
+    // Increase saturation and contrast
+    .modulate({ 
       saturation: 10,
       contrast : 10
     })
+    // Convert to grayscale for easier processing
     .greyscale()
+
+    // Adjusts image levels to bring out the contrast more
     .linear(1.7, -20)
-    // .negate() // Negate the image
-    // .normalize({
-    //   lower : 1,
-    //   upper: 99
-    // }) // Increase saturation and contrast
+
+    // Resize to make the image smaller
     .resize(dimensions)
+
+    // Get metadata for later scanning of pixels
     let metadata = await image.metadata();
     let { data, info } = await image
       .raw()
       .toBuffer({ resolveWithObject: true });
     
+    // Get dimensions of the image
     const width = info.width;
     const height = info.height;
-    console.log("width: ", width, "height ", height);
+
+    // Get channels of the images
     const channels = info.channels;
     if (data.length !== width * height * channels) {
       console.error("Mismatch in expected and actual data length.");
       return;
     }
 
+    // Main logic of the conversion
+    // Begin with an empty string for the ASCII conversion
+
     let str = "";
-    let countX = 0;
     for (let y = 0; y < height; y++) {
+
+      // Each row string is an empty string and gets populated with the ASCII character representing the brightness of the given pixel
       let row = "";
-      for (let x = 0; x < width -2; x++) {
+      for (let x = 0; x < width - 2; x++) { // -2 correction
+
+        // Go over each pixel
         const index = (y * width + x) * channels;
         const r = data[index];
         const g = data[index + 1];
         const b = data[index + 2];
 
+        // Calculate its brightness
         const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+        
+        // Add the "ASCII pixel" to the row
         row += brightnessToAscii(brightness) + " ";
       }
+      // Add the created row and a new line to the string
       str += row + "\n";
     }
+
+    // Return the converted image
     return str;
   } catch (error) {
     console.log(error);
   }
 }
 
-//brightness calculation
+// Brightness calculation of a given pixel given its brightness
 function brightnessToAscii(brightness) {
+  
+  // Normalizes the brightness
   brightness = Math.max(0, Math.min(255, brightness));
+
+  // Creates an index variable to map the brightness to ASCII 
   const index = Math.floor((brightness / 255) * (ascii.length - 1));
+
+  // Return the proper character representing the brightness of a pixel
   return ascii[index];
 }
 
+// Creates the ASCII string from an image URL in specified dimensions
 export async function createFile(fileName, dimensions) {
   let str = await convertImageToAscii(fileName, dimensions);
   return str;
 }
-
